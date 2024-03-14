@@ -22,32 +22,51 @@ namespace NetCoreSeguridadEmpleados.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Login(string username, string password)
+        public async Task<IActionResult> Login
+            (string username, string password)
         {
             int idEmpleado = int.Parse(password);
-            Empleado empleado = await this.repo.LoginEmpleadoAsync(username, idEmpleado);
-            if(empleado != null)
+            Empleado empleado = await
+                this.repo.LoginEmpleadoAsync(username, idEmpleado);
+            if (empleado != null)
             {
-                //seguridad
+                //SEGURIDAD
                 ClaimsIdentity identity =
                     new ClaimsIdentity(
                         CookieAuthenticationDefaults.AuthenticationScheme,
-                        ClaimTypes.Name, ClaimTypes.Role
-                    );
-                //creamos el claim para el nombre(apellido)
-                Claim claimName = new Claim(ClaimTypes.Name, empleado.Apellido);
+                        ClaimTypes.Name, ClaimTypes.Role);
+                //CREAMOS EL CLAIM PARA EL NOMBRE (APELLIDO)
+                Claim claimName =
+                    new Claim(ClaimTypes.Name, empleado.Apellido);
                 identity.AddClaim(claimName);
-                ClaimsPrincipal userPrincipal = new ClaimsPrincipal(identity);
+                Claim claimId =
+                    new Claim(ClaimTypes.NameIdentifier, empleado.IdEmpleado.ToString());
+                identity.AddClaim(claimId);
+                Claim claimOficio =
+                    new Claim(ClaimTypes.Role, empleado.Oficio);
+                identity.AddClaim(claimOficio);
+                Claim claimSalario =
+                    new Claim("Salario", empleado.Salario.ToString());
+                identity.AddClaim(claimSalario);
+                Claim claimDepartamento =
+                    new Claim("Departamento", empleado.IdDepartamento.ToString());
+                identity.AddClaim(claimDepartamento);
+                //COMO POR AHORA NO VOY A UTILIZAR NI SE UTILIZAR ROLES
+                //NO LO INCLUIMOS
+                ClaimsPrincipal userPrincipal =
+                    new ClaimsPrincipal(identity);
                 await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        userPrincipal
-                    );
-                //lo vamos a llevar a una vista que sera el perfil del empleado
-                return RedirectToAction("PerfilEmpleado", "Empleados");
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    userPrincipal);
+                //LO VAMOS A LLEVAR A UNA VISTA con la informacion
+                //que nos devuelve el filter en tempdata
+                string controller = TempData["controller"].ToString();
+                string action = TempData["action"].ToString();
+                return RedirectToAction(action, controller);
             }
             else
             {
-                ViewData["MENSAJE"] = "USUARIO/PASSWORD incorrectos";
+                ViewData["MENSAJE"] = "Usuario/Password incorrectos";
                 return View();
             }
         }
@@ -57,6 +76,11 @@ namespace NetCoreSeguridadEmpleados.Controllers
             await HttpContext.SignOutAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Index", "Home");
+        }
+
+        public IActionResult ErrorAcceso()
+        {
+            return View();
         }
     }
 }

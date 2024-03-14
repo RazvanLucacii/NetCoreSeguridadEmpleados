@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NetCoreSeguridadEmpleados.Filters;
 using NetCoreSeguridadEmpleados.Models;
 using NetCoreSeguridadEmpleados.Repositories;
 
@@ -26,11 +27,31 @@ namespace NetCoreSeguridadEmpleados.Controllers
             return View(empleado);
         }
 
-        [Authorize]
+        [AuthorizeEmpleados]
+        public async Task<IActionResult> Compis()
+        {
+            //recuperamos el dato del departamento del claim
+            string dato = HttpContext.User.FindFirst("Departamento").Value;
+            int idDepartamento = int.Parse(dato);
+            List<Empleado> empleados = await this.repo.GetEmpleadosDepartamentoAsync(idDepartamento);
+            return View(empleados);
+        }
+
+        [AuthorizeEmpleados]
         public async Task<IActionResult> PerfilEmpleado()
         {
-
             return View();
+        }
+
+        [AuthorizeEmpleados]
+        [HttpPost]
+        public async Task<IActionResult> Compis(int incremento)
+        {
+            string dato = HttpContext.User.FindFirst("Departamento").Value;
+            int idDepartamento = int.Parse(dato);
+            await this.repo.UpdateSalarioEmpleadosDepartamentoAsync(idDepartamento, incremento);
+            List<Empleado> empleados = await this.repo.GetEmpleadosDepartamentoAsync(idDepartamento);
+            return View(empleados);
         }
     }
 }
